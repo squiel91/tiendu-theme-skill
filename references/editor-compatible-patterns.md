@@ -75,3 +75,42 @@ When merchants should choose exact resources, prefer schema types such as:
 - `article_list`
 
 This is usually better than writing new custom fetch logic for curated modules.
+
+## Menu selection status
+
+Storefront menus are available in Liquid through the always-available globals:
+
+- `menus['main-menu']`
+- `linklists['main-menu']`
+
+However, the theme editor does not yet support a dedicated Shopify-style `link_list` setting type.
+
+Current practical options:
+
+- Hardcode a conventional handle such as `main-menu` or `footer-menu` when the theme contract expects that menu to exist.
+- Add a temporary text/select setting that stores a menu handle, then read `menus[section.settings.menu_handle]` in Liquid.
+- Do not add `{ "type": "link_list" }` settings until the platform implements that picker type.
+
+Example temporary setting:
+
+```json
+{
+  "type": "text",
+  "id": "menu_handle",
+  "label": "Handle del menu",
+  "default": "main-menu"
+}
+```
+
+Example Liquid:
+
+```liquid
+{% assign selected_menu = menus[section.settings.menu_handle] %}
+{% if selected_menu and selected_menu.links.size > 0 %}
+  <ul>
+    {% for link in selected_menu.links %}
+      <li><a href="{{ link.url | escape_attr }}">{{ link.label | escape }}</a></li>
+    {% endfor %}
+  </ul>
+{% endif %}
+```

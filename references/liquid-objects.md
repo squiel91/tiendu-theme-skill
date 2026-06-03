@@ -13,6 +13,7 @@ This document is derived from:
   - [`store` and `shop`](#store-and-shop)
   - [`request`](#request)
   - [`settings`](#settings)
+  - [`menus` and `linklists`](#menus-and-linklists)
   - [Other globals](#other-globals)
 - [Section context](#section-context)
   - [`section`](#section)
@@ -141,6 +142,109 @@ Font picker value shape:
     'system?': boolean
   }>
 }
+```
+
+### `menus` and `linklists`
+
+Availability: `Always`
+
+`menus` exposes the store-managed navigation menus created in the Tiendu admin under `Contenido > Menús`.
+
+`linklists` is an alias of `menus` for Shopify-style theme familiarity.
+
+Access menus by handle:
+
+```liquid
+{% assign main_menu = menus['main-menu'] %}
+{% assign footer_menu = linklists['footer-menu'] %}
+```
+
+Menu object shape:
+
+```ts
+{
+  id: number
+  title: string
+  handle: string
+  links: Array<{
+    id: number
+    label: string
+    url: string
+    type: 'product' | 'collection' | 'page' | 'article' | 'custom'
+    resource_type: 'product' | 'collection' | 'page' | 'article' | null
+    resource_id: number | null
+    open_in_new_tab: boolean
+    links: []
+  }>
+}
+```
+
+Important v1 behavior:
+
+- Menus are flat in v1. Individual `link.links` is always an empty array.
+- Theme code should render `link.label`; Tiendu intentionally uses `label` for menu item text instead of Shopify's `link.title`.
+- `link.url` is the saved URL snapshot from the admin. The Liquid render does not re-resolve `resource_type` / `resource_id` in v1.
+- `resource_type` and `resource_id` are metadata for admin/future tooling. Do not depend on them to build URLs in theme code.
+- Missing handles return blank/empty behavior like normal undefined Liquid values; guard with `if menu and menu.links.size > 0` before rendering user-visible navigation.
+
+Basic render example:
+
+```liquid
+{% assign main_menu = menus['main-menu'] %}
+
+{% if main_menu and main_menu.links.size > 0 %}
+  <nav aria-label="Navegacion principal">
+    <ul>
+      {% for link in main_menu.links %}
+        <li>
+          <a
+            href="{{ link.url | escape_attr }}"
+            {% if link.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
+          >
+            {{ link.label | escape }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </nav>
+{% elsif design_mode or preview_mode %}
+  <p>Selecciona o crea un menu en Contenido &gt; Menus.</p>
+{% endif %}
+```
+
+Shopify-style alias example:
+
+```liquid
+{% assign footer_menu = linklists['footer-menu'] %}
+
+{% if footer_menu and footer_menu.links.size > 0 %}
+  <ul class="footer-menu">
+    {% for link in footer_menu.links %}
+      <li><a href="{{ link.url | escape_attr }}">{{ link.label | escape }}</a></li>
+    {% endfor %}
+  </ul>
+{% endif %}
+```
+
+Current selector support:
+
+- Theme authors can render menus directly from `menus['handle']` / `linklists['handle']` today.
+- A Shopify-compatible schema setting type such as `{ "type": "link_list", "id": "menu" }` is not implemented yet in the theme editor.
+- Until `link_list` is implemented, use a known menu handle such as `main-menu` or `footer-menu`, or expose a plain text/select setting that stores the handle and then read `menus[section.settings.menu_handle]`.
+
+Example temporary handle setting:
+
+```json
+{
+  "type": "text",
+  "id": "menu_handle",
+  "label": "Handle del menu",
+  "default": "main-menu"
+}
+```
+
+```liquid
+{% assign selected_menu = menus[section.settings.menu_handle] %}
 ```
 
 ### Other globals
