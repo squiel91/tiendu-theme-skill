@@ -401,6 +401,9 @@ Backed by: `Product` plus a `ProductDrop`
   coverImage: Image | null
   images: Image[] | null
   basePriceInCents: number | null
+  minPriceInCents: number | null
+  maxPriceInCents: number | null
+  compareAtPriceInCents: number | null
   baseCompareAtPriceInCents: number | null
   baseWeightInGrams: number | null
   description: string | null
@@ -417,6 +420,7 @@ Backed by: `Product` plus a `ProductDrop`
   videoUrl: string | null
   isPhysical: boolean
   isListed: boolean
+  inStock: boolean
   averageRating: number | null
   reviewsQuantity: number
   reviews: ProductReview[]
@@ -437,6 +441,16 @@ Backed by: `Product` plus a `ProductDrop`
 
 Pragmatic notes:
 
+- `basePriceInCents` is the product's base/admin price. Prefer `minPriceInCents` / `maxPriceInCents` for storefront list and card display when variants exist.
+- `minPriceInCents` is the lowest price among listed variants with a non-null `priceInCents`. Variants without a price are excluded. If no listed variant has a price, this is `null`.
+- `maxPriceInCents` is the highest price among listed variants with a non-null `priceInCents`. Variants without a price are excluded. If no listed variant has a price, this is `null`.
+- `compareAtPriceInCents` is a product-level compare-at price for simple storefront display. It is set only when every included priced variant has the same non-null `compareAtPriceInCents`; otherwise it is `null`.
+- `baseCompareAtPriceInCents` is the product's base/admin compare-at price. Prefer `compareAtPriceInCents` for storefront list and card display when variants exist.
+- Use `minPriceInCents != maxPriceInCents` to decide whether to show a `Desde` price label on product cards.
+- The aggregate price fields are replicated columns kept in sync by the database when variants are inserted, updated, deleted, repriced, or listed/unlisted. They are not recomputed in Liquid.
+- `inStock` is `true` when at least one variant has `stock > 0` or `stock IS NULL` (unlimited).
+- `inStock` is `false` when every variant has `stock = 0`.
+- The field is a replicated column kept in sync by the database, not computed at render time.
 - `related_products` is `Lazy` on the real product page object.
 - `related_products_count` is `Lazy` on the real product page object.
 - A setting-selected product does not get those lazy related-product fields.
